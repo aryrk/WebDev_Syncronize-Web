@@ -202,11 +202,17 @@
 
       var envmap;
       // check for 'optimize' cookie
-      if (readCookie("optimize") === "true") {
-        envmap = "rosendal_plains_2_1k.hdr";
-      } else {
-        envMap = "rosendal_plains_2_4k.hdr";
-      }
+
+      // try catch
+      envmap = "rosendal_plains_2_1k.hdr";
+      try {
+        if (readCookie("optimize") === "true") {
+          envmap = "rosendal_plains_2_1k.hdr";
+        } else if (readCookie("optimize") === "false") {
+          envMap = "rosendal_plains_2_4k.hdr";
+        }
+      } catch (error) {}
+
       // Set environment map
       const pmremGenerator = new THREE.PMREMGenerator(renderer);
       const HDRILoader = new THREE.RGBELoader();
