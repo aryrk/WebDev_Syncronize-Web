@@ -36,8 +36,8 @@
       }
       #latencyChart {
         position: fixed;
-        bottom: 10px;
-        left: 10px;
+        top: 10px;
+        right: 10px;
         width: 300px;
         height: 100px;
         background-color: rgba(0, 0, 0, 0.5);
@@ -65,9 +65,32 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/RGBELoader.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+      integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
     <script>
       // Setup WebSocket connection
-      const socket = new WebSocket(`ws://${window.location.hostname}:8080`);
+      // const socket = new WebSocket(`ws://${window.location.hostname}:8080`);
+      var socket;
+      // get form data
+      if (window.location.search) {
+        const urlParams = new URLSearchParams(window.location.search);
+        var url = urlParams.get("url");
+        // if url has https:// or http://, remove it
+        if (url.includes("https://") || url.includes("http://")) {
+          url = url.replace("https://", "");
+          url = url.replace("http://", "");
+        }
+        socket = new WebSocket("wss://" + url);
+      } else {
+        socket = new WebSocket(`ws://localhost:8080`);
+      }
+
+      console.log(socket);
+
       // io.connect https://3ab8-114-10-146-182.ngrok-free.app
       // const socket = new WebSocket(`wss://3ab8-114-10-146-182.ngrok-free.app`);
 
