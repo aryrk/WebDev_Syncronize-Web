@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Broadcast Channel</title>
+    <style>
+      canvas {
+        display: block;
+      }
+      body {
+        margin: 0;
+      }
+      /* Control button styles */
+      .controls {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: none; /* Hidden by default, shown on mobile */
+      }
+      .controls button {
+        margin: 5px;
+        padding: 15px;
+        font-size: 18px;
+      }
+      /* HUD latensi */
+      .latencyHUD {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-family: Arial, sans-serif;
+        font-size: 2vw;
+      }
+      #latencyChart {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        width: 300px;
+        height: 100px;
+        background-color: rgba(0, 0, 0, 0.5);
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Mobile controls -->
+    <div class="controls" id="mobileControls">
+      <button id="rotateLeft">⬅️</button>
+      <button id="rotateRight">➡️</button>
+      <button id="rotateUp">⬆️</button>
+      <button id="rotateDown">⬇️</button>
+    </div>
+
+    <!-- HUD latensi -->
+    <div class="latencyHUD">
+      <span id="latencyHUD">Latency: N/A</span><br /><span id="maxLatency"
+        >Max: N/A</span
+      ><br /><span id="minLatency">Min: N/A</span><br />
+      <span id="avgLatency">Avg: N/A</span><br />
+      <span id="data_size">Data Size: N/A</span>
+    </div>
+    <canvas id="latencyChart"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/RGBELoader.js"></script>
+    <script>
+      // Setup Broadcast Channel
+      const channel = new BroadcastChannel("3d-render-sync");
+
+      let lastReceivedTime = null;
+      let latencyData = [];
+      const maxDataPoints = 100; // Number of data points in the chart
+      let maxLatency = 0;
+      let minLatency = 0;
+      let avgLatency = 0;
+
+      channel.onmessage = (event) => {
+        const receiveTime = Date.now();
+        const data = event.data;
+
+        const dataSize = new TextEncoder().encode(JSON.stringify(data)).length;
+
+        // Calculate latency
+        if (data.timestamp) {
+          const latency = Math.abs((receiveTime - data.timestamp) * 1000);
+          if (latency > maxLatency) maxLatency = latency;
+          if (latency < minLatency) minLatency = latency;
+          document.getElementById(
+            "latencyHUD"
+          ).innerText = `Latency: ${latency} µs`;
+          document.getElementById(
+            "maxLatency"
+          ).innerText = `Max: ${maxLatency} µs`;
+          document.getElementById(
+            "minLatency"
+          ).innerText = `Min: ${minLatency} µs`;
+          document.getElementById(
+            "data_size"
+          ).innerText = `Data Size: ${dataSize} bytes`;
+
+          // Store latency data for graph
+          latencyData.push(Math.abs((receiveTime - data.timestamp) * 100));
+          if (latencyData.length > maxDataPoints) latencyData.shift();
+
+          // Update graph
+          updateLatencyChart();
+
+          document.getElementById(
+            "avgLatency"
+          ).innerText = `Avg: ${avgLatency} µs`;
+        }
+
+        // Update 3D object rotation based on received data
+        if (object) {
+          object.rotation.x = data.rotationX;
+          object.rotation.y = data.rotationY;
+          object.rotation.z = data.rotationZ;
+        }
+
+        lastReceivedTime = receiveTime;
+      };
+
+      function updateLatencyChart() {
+        const canvas = document.getElementById("latencyChart");
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.strokeStyle = "rgba(0, 255, 0, 0.7)";
+        ctx.beginPath();
+
+        const stepX = width / latencyData.length;
+        var total = 0;
+        var count = 0;
+        latencyData.forEach((latency, i) => {
+          const x = i * stepX;
+          const y = latency; // Normalize latency for chart height
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+
+          // Calculate average latency
+          total += latency;
+          count++;
+
+          avgLatency = Math.round(total / count);
+        });
+
+        ctx.stroke();
+      }
+
+      // Three.js Setup
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        1,
+        1000
+      );
+      scene.fog = new THREE.Fog(0xa0a0a0, 10, 50);
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.appendChild(renderer.domElement);
+
+      // GLTF Loader
+      const loader = new THREE.GLTFLoader();
+      let object;
+      loader.load("ferrari_550_barchetta_2000_azzurro_hyperion.glb", (gltf) => {
+        object = gltf.scene;
+        object.receiveShadow = true;
+        scene.add(object);
+      });
+
+      // Set environment map
+      const pmremGenerator = new THREE.PMREMGenerator(renderer);
+      const HDRILoader = new THREE.RGBELoader();
+      HDRILoader.load("rosendal_plains_2_4k.hdr", (texture) => {
+        const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+        texture.dispose();
+        scene.environment = envMap;
+        scene.background = new THREE.Color(0xffffff);
+      });
+
+      camera.position.z = 5;
+
+      const animate = () => {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      };
+      animate();
+
+      // Detect device type and show controls for mobile
+      if (/Mobi|Android/i.test(navigator.userAgent)) {
+        document.getElementById("mobileControls").style.display = "block";
+      }
+
+      // Keyboard controls for desktop
+      window.addEventListener("keydown", (event) => {
+        if (!object) return;
+        switch (event.key) {
+          case "ArrowUp":
+            object.rotation.x += 0.1;
+            break;
+          case "ArrowDown":
+            object.rotation.x -= 0.1;
+            break;
+          case "ArrowLeft":
+            object.rotation.y -= 0.1;
+            break;
+          case "ArrowRight":
+            object.rotation.y += 0.1;
+            break;
+        }
+        sendRotationData();
+      });
+
+      // Mobile button controls
+      document.getElementById("rotateLeft").addEventListener("click", () => {
+        if (object) object.rotation.y -= 0.1;
+        sendRotationData();
+      });
+
+      document.getElementById("rotateRight").addEventListener("click", () => {
+        if (object) object.rotation.y += 0.1;
+        sendRotationData();
+      });
+
+      document.getElementById("rotateUp").addEventListener("click", () => {
+        if (object) object.rotation.x += 0.1;
+        sendRotationData();
+      });
+
+      document.getElementById("rotateDown").addEventListener("click", () => {
+        if (object) object.rotation.x -= 0.1;
+        sendRotationData();
+      });
+
+      // Send rotation data to Broadcast Channel
+      function sendRotationData() {
+        const data = {
+          rotationX: object.rotation.x,
+          rotationY: object.rotation.y,
+          rotationZ: object.rotation.z,
+          timestamp: Date.now(), // Include timestamp
+        };
+        channel.postMessage(data);
+        document.getElementById("latencyHUD").innerText = "Latency: N/A";
+        document.getElementById("maxLatency").innerText = "Max: N/A";
+        document.getElementById("minLatency").innerText = "Min: N/A";
+        document.getElementById("avgLatency").innerText = "Avg: N/A";
+        document.getElementById("data_size").innerText = "Data Size: N/A";
+      }
+    </script>
+  </body>
+</html>
