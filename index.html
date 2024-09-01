@@ -16,6 +16,12 @@
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
     ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"
+      integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
   </head>
   <body class="bg-dark text-light">
     <center class="position-absolute top-50 start-50 translate-middle">
@@ -23,7 +29,7 @@
       <a href="BroadcastChannel.html" class="btn btn-primary"
         >Broadcast Channel</a
       >
-      <a href="Treejs_WebSocket.html" class="ms-3 btn btn-warning"
+      <a href="Treejs_WebSocket.html" class="ms-0 ms-md-3 btn btn-warning"
         >WebSocket Local</a
       >
       <hr />
@@ -39,6 +45,46 @@
           Websocket internet
         </button>
       </form>
+
+      <div class="form-check mt-3 w-50">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          value="true"
+          id="flexCheckDefault"
+        />
+        <label class="form-check-label" for="flexCheckDefault">
+          Optimize Mode
+        </label>
+      </div>
     </center>
   </body>
+  <script>
+    $(document).ready(function () {
+      if (localStorage.getItem("optimize") === "true") {
+        $("#flexCheckDefault").prop("checked", true);
+      }
+    });
+
+    function writeCookie(name, value, days) {
+      var date, expires;
+      if (days) {
+        date = new Date();
+        date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+        expires = "; expires=" + date.toGMTString();
+      } else {
+        expires = "";
+      }
+      document.cookie = name + "=" + value + expires + "; path=/";
+    }
+
+    // function to handle checkbox, if checked then save session cookie to set true, else set false, dont use localstorage
+    $("#flexCheckDefault").change(function () {
+      if ($(this).is(":checked")) {
+        writeCookie("optimize", "true", 1);
+      } else {
+        writeCookie("optimize", "false", 1);
+      }
+    });
+  </script>
 </html>

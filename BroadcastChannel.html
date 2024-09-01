@@ -70,6 +70,24 @@
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/RGBELoader.js"></script>
     <script>
+      function readCookie(name) {
+        var i,
+          c,
+          ca,
+          nameEQ = name + "=";
+        ca = document.cookie.split(";");
+        for (i = 0; i < ca.length; i++) {
+          c = ca[i];
+          while (c.charAt(0) == " ") {
+            c = c.substring(1, c.length);
+          }
+          if (c.indexOf(nameEQ) == 0) {
+            return c.substring(nameEQ.length, c.length);
+          }
+        }
+        return "";
+      }
+
       // Setup Broadcast Channel
       const channel = new BroadcastChannel("3d-render-sync");
 
@@ -182,10 +200,17 @@
         scene.add(object);
       });
 
+      var envmap;
+      // check for 'optimize' cookie
+      if (readCookie("optimize") === "true") {
+        envmap = "rosendal_plains_2_1k.hdr";
+      } else {
+        envMap = "rosendal_plains_2_4k.hdr";
+      }
       // Set environment map
       const pmremGenerator = new THREE.PMREMGenerator(renderer);
       const HDRILoader = new THREE.RGBELoader();
-      HDRILoader.load("rosendal_plains_2_4k.hdr", (texture) => {
+      HDRILoader.load(envmap, (texture) => {
         const envMap = pmremGenerator.fromEquirectangular(texture).texture;
         texture.dispose();
         scene.environment = envMap;

@@ -72,6 +72,24 @@
       referrerpolicy="no-referrer"
     ></script>
     <script>
+      function readCookie(name) {
+        var i,
+          c,
+          ca,
+          nameEQ = name + "=";
+        ca = document.cookie.split(";");
+        for (i = 0; i < ca.length; i++) {
+          c = ca[i];
+          while (c.charAt(0) == " ") {
+            c = c.substring(1, c.length);
+          }
+          if (c.indexOf(nameEQ) == 0) {
+            return c.substring(nameEQ.length, c.length);
+          }
+        }
+        return "";
+      }
+
       // Setup WebSocket connection
       // const socket = new WebSocket(`ws://${window.location.hostname}:8080`);
       var socket;
@@ -202,6 +220,15 @@
       // GLTF Loader
       const loader = new THREE.GLTFLoader();
       let object;
+
+      var envmap;
+      // check for 'optimize' cookie
+      if (readCookie("optimize") === "true") {
+        envmap = "rosendal_plains_2_1k.hdr";
+      } else {
+        envMap = "rosendal_plains_2_4k.hdr";
+      }
+
       loader.load("ferrari_550_barchetta_2000_azzurro_hyperion.glb", (gltf) => {
         object = gltf.scene;
         object.receiveShadow = true;
@@ -211,7 +238,7 @@
       // Set environment map
       const pmremGenerator = new THREE.PMREMGenerator(renderer);
       const HDRILoader = new THREE.RGBELoader();
-      HDRILoader.load("rosendal_plains_2_4k.hdr", (texture) => {
+      HDRILoader.load(envmap, (texture) => {
         const envMap = pmremGenerator.fromEquirectangular(texture).texture;
         texture.dispose();
         scene.environment = envMap;
