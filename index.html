@@ -61,9 +61,7 @@
   </body>
   <script>
     $(document).ready(function () {
-      if (localStorage.getItem("optimize") === "true") {
-        $("#flexCheckDefault").prop("checked", true);
-      }
+      $("#flexCheckDefault").prop("checked", true);
     });
 
     function writeCookie(name, value, days) {
