@@ -93,6 +93,7 @@
       // Setup WebSocket connection
       // const socket = new WebSocket(`ws://${window.location.hostname}:8080`);
       var socket;
+      var online = false;
       // get form data
       if (window.location.search) {
         const urlParams = new URLSearchParams(window.location.search);
@@ -103,6 +104,7 @@
           url = url.replace("http://", "");
         }
         socket = new WebSocket("wss://" + url);
+        online = true;
       } else {
         socket = new WebSocket(`ws://localhost:8080`);
       }
@@ -186,8 +188,12 @@
         var count = 0;
         latencyData.forEach((latency, i) => {
           const x = i * stepX;
-          // const y = latency / 10000;
-          const y = latency;
+          var y;
+          if (online) {
+            y = latency / 10000;
+          } else {
+            y = latency;
+          }
           if (i === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
 
